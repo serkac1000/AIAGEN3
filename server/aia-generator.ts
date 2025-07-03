@@ -90,14 +90,21 @@ external_comps=${externalComps}
       }
     );
 
-    // Parse number of buttons from requirements
+    // Parse number of buttons from requirements - both natural language and pseudo-code
     let buttonCount = 0;
     const buttonMatches = reqLower.match(/(\d+)\s*buttons?/);
     const wordMatches = reqLower.match(/(one|two|three|four|five|six|seven|eight|nine|ten)\s*buttons?/);
     
-    if (buttonMatches) {
+    // Check for pseudo-code button references (Button1, Button2, etc.)
+    const pseudoCodeButtons = reqLower.match(/button(\d+)/g);
+    if (pseudoCodeButtons) {
+      const buttonNumbers = pseudoCodeButtons.map(btn => parseInt(btn.replace('button', ''), 10));
+      buttonCount = Math.max(...buttonNumbers);
+    }
+    
+    if (buttonMatches && !buttonCount) {
       buttonCount = parseInt(buttonMatches[1], 10);
-    } else if (wordMatches) {
+    } else if (wordMatches && !buttonCount) {
       const wordToNumber = {
         'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
         'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10
@@ -271,25 +278,47 @@ external_comps=${externalComps}
     let blockEvents = '';
     let blockId = 1;
 
-    // Parse specific actions from requirements
+    // Parse specific actions from requirements - handle both natural language and pseudo-code
     const parseButtonActions = (requirements: string) => {
       const actions: { [key: number]: string[] } = {};
       const req = requirements.toLowerCase();
       
-      // Look for button-specific actions
-      const buttonActionPatterns = [
-        /button\s*(\d+).*?set\s+(\w+)\s+background/g,
-        /push\s+(?:on\s+)?button\s*(\d+).*?set\s+(\w+)\s+background/g,
-        /click\s+button\s*(\d+).*?set\s+(\w+)\s+background/g
+      // Look for pseudo-code patterns first
+      const pseudoCodePatterns = [
+        // Pattern: On Button1.Click do ... Set Screen1.BackgroundColor to Red
+        /on\s+button(\d+)\.click.*?set\s+screen\d*\.backgroundcolor\s+to\s+(\w+)/gs,
+        // Pattern: When Button1 is clicked ... Set Screen1.BackgroundColor to Red  
+        /when\s+button(\d+).*?clicked.*?set\s+screen\d*\.backgroundcolor\s+to\s+(\w+)/gs,
+        // Pattern: Button1.Click -> Set Screen1.BackgroundColor to Red
+        /button(\d+)\.click.*?set\s+screen\d*\.backgroundcolor\s+to\s+(\w+)/gs
       ];
       
-      buttonActionPatterns.forEach(pattern => {
+      pseudoCodePatterns.forEach(pattern => {
         let match;
         while ((match = pattern.exec(req)) !== null) {
           const buttonNum = parseInt(match[1], 10);
           const color = match[2];
           if (!actions[buttonNum]) actions[buttonNum] = [];
           actions[buttonNum].push(`set_background_${color}`);
+        }
+      });
+      
+      // Also look for natural language patterns
+      const naturalLanguagePatterns = [
+        /button\s*(\d+).*?set\s+(\w+)\s+background/g,
+        /push\s+(?:on\s+)?button\s*(\d+).*?set\s+(\w+)\s+background/g,
+        /click\s+button\s*(\d+).*?set\s+(\w+)\s+background/g
+      ];
+      
+      naturalLanguagePatterns.forEach(pattern => {
+        let match;
+        while ((match = pattern.exec(req)) !== null) {
+          const buttonNum = parseInt(match[1], 10);
+          const color = match[2];
+          if (!actions[buttonNum]) actions[buttonNum] = [];
+          if (!actions[buttonNum].includes(`set_background_${color}`)) {
+            actions[buttonNum].push(`set_background_${color}`);
+          }
         }
       });
       
