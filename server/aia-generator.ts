@@ -283,25 +283,54 @@ external_comps=${externalComps}
       const actions: { [key: number]: string[] } = {};
       const req = requirements.toLowerCase();
       
-      // Look for pseudo-code patterns first
-      const pseudoCodePatterns = [
+      // Look for pseudo-code patterns using string matching for better compatibility
+      const lines = req.split('\n');
+      lines.forEach(line => {
         // Pattern: On Button1.Click do ... Set Screen1.BackgroundColor to Red
-        /on\s+button(\d+)\.click.*?set\s+screen\d*\.backgroundcolor\s+to\s+(\w+)/gs,
-        // Pattern: When Button1 is clicked ... Set Screen1.BackgroundColor to Red  
-        /when\s+button(\d+).*?clicked.*?set\s+screen\d*\.backgroundcolor\s+to\s+(\w+)/gs,
-        // Pattern: Button1.Click -> Set Screen1.BackgroundColor to Red
-        /button(\d+)\.click.*?set\s+screen\d*\.backgroundcolor\s+to\s+(\w+)/gs
-      ];
-      
-      pseudoCodePatterns.forEach(pattern => {
-        let match;
-        while ((match = pattern.exec(req)) !== null) {
-          const buttonNum = parseInt(match[1], 10);
-          const color = match[2];
-          if (!actions[buttonNum]) actions[buttonNum] = [];
-          actions[buttonNum].push(`set_background_${color}`);
+        if (line.includes('on button') && line.includes('click') && line.includes('set') && line.includes('backgroundcolor')) {
+          const buttonMatch = line.match(/button(\d+)/);
+          const colorMatch = line.match(/backgroundcolor\s+to\s+(\w+)/);
+          if (buttonMatch && colorMatch) {
+            const buttonNum = parseInt(buttonMatch[1], 10);
+            const color = colorMatch[1];
+            if (!actions[buttonNum]) actions[buttonNum] = [];
+            actions[buttonNum].push(`set_background_${color}`);
+          }
+        }
+        
+        // Pattern: When Button1 is clicked ... Set Screen1.BackgroundColor to Red
+        if (line.includes('when button') && line.includes('clicked') && line.includes('set') && line.includes('backgroundcolor')) {
+          const buttonMatch = line.match(/button(\d+)/);
+          const colorMatch = line.match(/backgroundcolor\s+to\s+(\w+)/);
+          if (buttonMatch && colorMatch) {
+            const buttonNum = parseInt(buttonMatch[1], 10);
+            const color = colorMatch[1];
+            if (!actions[buttonNum]) actions[buttonNum] = [];
+            actions[buttonNum].push(`set_background_${color}`);
+          }
         }
       });
+      
+      // Also check the entire requirements for Set Screen.BackgroundColor patterns
+      const setBgMatches = req.match(/set\s+screen\d*\.backgroundcolor\s+to\s+(\w+)/g);
+      if (setBgMatches) {
+        setBgMatches.forEach(match => {
+          const colorMatch = match.match(/to\s+(\w+)/);
+          if (colorMatch) {
+            const color = colorMatch[1];
+            // Find which button this action belongs to by looking at context
+            const beforeMatch = req.substring(0, req.indexOf(match));
+            const buttonMatch = beforeMatch.match(/button(\d+)(?!.*button\d+)/);
+            if (buttonMatch) {
+              const buttonNum = parseInt(buttonMatch[1], 10);
+              if (!actions[buttonNum]) actions[buttonNum] = [];
+              if (!actions[buttonNum].includes(`set_background_${color}`)) {
+                actions[buttonNum].push(`set_background_${color}`);
+              }
+            }
+          }
+        });
+      }
       
       // Also look for natural language patterns
       const naturalLanguagePatterns = [
@@ -340,28 +369,55 @@ external_comps=${externalComps}
       <field name="component_object">Button${i}</field>
       <statement name="DO">`;
 
-        if (hasSpecificAction && buttonActions[i].includes('set_background_red')) {
-          // Set red background for screen
-          blockEvents += `
-        <block type="component_set_get" id="${blockId + 1}">
-          <mutation component_type="Form" set_or_get="set" property_name="BackgroundColor" is_generic="false" instance_name="Screen1"></mutation>
-          <field name="PROP">BackgroundColor</field>
-          <value name="VALUE">
-            <block type="color_red" id="${blockId + 2}"></block>
-          </value>
-        </block>`;
-        } else if (hasSpecificAction && buttonActions[i].some(action => action.startsWith('set_background_'))) {
-          // Set other background colors
+        if (hasSpecificAction && buttonActions[i].some(action => action.startsWith('set_background_'))) {
+          // Get the color from the action
           const colorAction = buttonActions[i].find(action => action.startsWith('set_background_'));
           const color = colorAction?.split('_')[2] || 'blue';
+          
+          // Generate proper MIT App Inventor color value
+          const colorValues: { [key: string]: string } = {
+            'red': '&HFFFF0000',
+            'green': '&HFF00FF00', 
+            'blue': '&HFF0000FF',
+            'yellow': '&HFFFFFF00',
+            'white': '&HFFFFFFFF',
+            'black': '&HFF000000',
+            'orange': '&HFFFFA500',
+            'purple': '&HFF800080'
+          };
+          
+          const colorValue = colorValues[color] || '&HFF0000FF';
+          
           blockEvents += `
         <block type="component_set_get" id="${blockId + 1}">
           <mutation component_type="Form" set_or_get="set" property_name="BackgroundColor" is_generic="false" instance_name="Screen1"></mutation>
           <field name="PROP">BackgroundColor</field>
           <value name="VALUE">
-            <block type="color_${color}" id="${blockId + 2}"></block>
+            <block type="color_make_color" id="${blockId + 2}">
+              <value name="COLORLIST">
+                <block type="lists_create_with" id="${blockId + 3}">
+                  <mutation items="3"></mutation>
+                  <value name="ADD0">
+                    <block type="math_number" id="${blockId + 4}">
+                      <field name="NUM">${parseInt(colorValue.slice(4, 6), 16)}</field>
+                    </block>
+                  </value>
+                  <value name="ADD1">
+                    <block type="math_number" id="${blockId + 5}">
+                      <field name="NUM">${parseInt(colorValue.slice(6, 8), 16)}</field>
+                    </block>
+                  </value>
+                  <value name="ADD2">
+                    <block type="math_number" id="${blockId + 6}">
+                      <field name="NUM">${parseInt(colorValue.slice(8, 10), 16)}</field>
+                    </block>
+                  </value>
+                </block>
+              </value>
+            </block>
           </value>
         </block>`;
+        blockId += 6;
         } else {
           // Default action - update label
           blockEvents += `
@@ -374,12 +430,17 @@ external_comps=${externalComps}
             </block>
           </value>
         </block>`;
+          blockId += 3;
         }
 
         blockEvents += `
       </statement>
     </block>`;
-        blockId += 3;
+        
+        // Adjust blockId based on whether we used the complex color blocks or simple text
+        if (hasSpecificAction && buttonActions[i].some(action => action.startsWith('set_background_'))) {
+          blockId += 0; // Already incremented by 6 above
+        }
       }
     } else {
       // Default search and clear button events
