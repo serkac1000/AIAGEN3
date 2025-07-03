@@ -33,7 +33,7 @@ export const insertAiaProjectSchema = createInsertSchema(aiaProjects).omit({
   userId: z.string().min(1, "User ID is required"),
   apiKey: z.string().optional(),
   cseId: z.string().optional(),
-  searchPrompt: z.string().min(1, "Search prompt is required"),
+  searchPrompt: z.string().optional(),
   requirements: z.string().optional(),
   extensions: z.array(z.string()).default([]),
 });

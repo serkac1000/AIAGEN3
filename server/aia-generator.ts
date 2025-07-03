@@ -26,7 +26,7 @@ export async function generateAiaFile(
     const srcDir = path.join(tempDir, 'src', 'appinventor', `ai_${userId}`, projectName);
     const assetsDir = path.join(tempDir, 'assets');
     const youngandroidDir = path.join(tempDir, 'youngandroidproject');
-    
+
     console.log(`[AIA_GEN] Creating directories in: ${tempDir}`);
     await fs.promises.mkdir(srcDir, { recursive: true });
     await fs.promises.mkdir(assetsDir, { recursive: true });
@@ -36,7 +36,7 @@ export async function generateAiaFile(
     // 2. Create project.properties
     const timestamp = new Date().toUTCString();
     const externalComps = extensionFiles.map(ext => `com.appybuilder.${path.parse(ext.originalname).name}`).join(',');
-    
+
     const projectProperties = `#
 #${timestamp}
 sizing=Responsive
@@ -68,11 +68,11 @@ external_comps=${externalComps}
     // 3. Create Screen1.scm with user-specified components
     const requirements = request.requirements || "";
     const searchPrompt = request.searchPrompt || "default search";
-    
+
     // Parse requirements to determine components needed
     const reqLower = requirements.toLowerCase();
     const components: any[] = [];
-    
+
     // Always add basic components
     components.push(
       {
@@ -203,7 +203,7 @@ external_comps=${externalComps}
     // 4. Create Screen1.bky (blocks file) - MIT AI2 exact specification
     let blockEvents = '';
     let blockId = 1;
-    
+
     // Generate blocks based on components
     if (reqLower.includes('4 buttons') || reqLower.includes('four buttons')) {
       // Create 4 button click events
@@ -286,7 +286,7 @@ external_comps=${externalComps}
     const zipBuffer = await new Promise<Buffer>((resolve, reject) => {
       const archive = archiver('zip', { zlib: { level: 9 } });
       const buffers: Buffer[] = [];
-      
+
       archive.on('data', (chunk) => buffers.push(chunk));
       archive.on('end', () => {
         console.log(`[AIA_GEN] ZIP archive created successfully`);
@@ -299,7 +299,7 @@ external_comps=${externalComps}
       archive.on('warning', (err) => {
         console.warn(`[AIA_GEN] ZIP warning:`, err);
       });
-      
+
       archive.directory(tempDir, false);
       archive.finalize();
     });

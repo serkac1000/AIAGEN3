@@ -200,9 +200,10 @@ export function AiaForm({ onStatusMessage, onClearStatus }: AiaFormProps) {
       return;
     }
 
-    // Ensure boolean fields are properly typed
+    // Ensure boolean fields are properly typed and handle empty searchPrompt
     const formattedData = {
       ...data,
+      searchPrompt: data.searchPrompt || "",
       saveConfig: Boolean(data.saveConfig),
       validateStrict: Boolean(data.validateStrict)
     };
@@ -211,9 +212,10 @@ export function AiaForm({ onStatusMessage, onClearStatus }: AiaFormProps) {
 
   const handleValidate = () => {
     const data = form.getValues();
-    // Ensure boolean fields are properly typed
+    // Ensure boolean fields are properly typed and handle empty searchPrompt
     const formattedData = {
       ...data,
+      searchPrompt: data.searchPrompt || "",
       saveConfig: Boolean(data.saveConfig),
       validateStrict: Boolean(data.validateStrict)
     };
@@ -418,12 +420,12 @@ export function AiaForm({ onStatusMessage, onClearStatus }: AiaFormProps) {
               name="searchPrompt"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Default Search Prompt <span className="text-red-500">*</span></FormLabel>
+                  <FormLabel>Default Search Prompt <span className="text-gray-400">(Optional)</span></FormLabel>
                   <FormControl>
                     <Input placeholder="e.g., best restaurants near me" {...field} />
                   </FormControl>
                   <FormDescription>
-                    This will be the default search text in your app
+                    Optional: This will be the default search text in your app
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -508,13 +510,27 @@ export function AiaForm({ onStatusMessage, onClearStatus }: AiaFormProps) {
                 <FormDescription>Upload UI mockup or design images for reference (PNG, JPG, GIF)</FormDescription>
                 <FileUpload
                   files={designImages}
-                  onFilesChange={setDesignImages}
+                  onFilesChange={(files) => {
+                    setDesignImages(files);
+                    if (files.length > 0) {
+                      onStatusMessage(`✓ ${files.length} design image(s) uploaded successfully`, "success");
+                    }
+                  }}
                   accept=".png,.jpg,.jpeg,.gif,.bmp"
                   multiple
                 />
                 {designImages.length > 0 && (
-                  <div className="mt-2 text-sm text-green-600">
-                    ✓ {designImages.length} design image(s) uploaded - will be referenced in component generation
+                  <div className="mt-3 space-y-2">
+                    <div className="text-sm text-green-600 font-medium">
+                      ✓ {designImages.length} design image(s) uploaded - will be referenced in component generation
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {designImages.map((file, index) => (
+                        <div key={index} className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
+                          📷 {file.name}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

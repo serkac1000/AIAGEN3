@@ -18,8 +18,13 @@ export function FileUpload({ files, onFilesChange, accept = "", multiple = false
     if (!selectedFiles) return;
 
     const validFiles = Array.from(selectedFiles).filter(file => {
-      if (accept && !file.name.endsWith(accept.replace('.', ''))) {
-        return false;
+      if (accept) {
+        const acceptedTypes = accept.split(',').map(type => type.trim());
+        const hasValidExtension = acceptedTypes.some(acceptedType => {
+          const extension = acceptedType.replace('.', '').toLowerCase();
+          return file.name.toLowerCase().endsWith(extension);
+        });
+        return hasValidExtension;
       }
       return true;
     });
@@ -107,14 +112,20 @@ export function FileUpload({ files, onFilesChange, accept = "", multiple = false
       {/* Selected Files List */}
       {files.length > 0 && (
         <div>
-          <h4 className="text-sm font-medium text-gray-700 mb-3">Selected Extensions:</h4>
+          <h4 className="text-sm font-medium text-gray-700 mb-3">
+            Selected {accept.includes('.aix') ? 'Extensions' : 'Images'}:
+          </h4>
           <div className="space-y-2">
             {files.map((file, index) => (
               <Card key={`${file.name}-${index}`}>
                 <CardContent className="p-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      <Puzzle className="w-5 h-5 text-primary" />
+                      {accept.includes('.aix') ? (
+                        <Puzzle className="w-5 h-5 text-primary" />
+                      ) : (
+                        <span className="text-lg">📷</span>
+                      )}
                       <div>
                         <p className="font-medium text-sm text-gray-900">{file.name}</p>
                         <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
