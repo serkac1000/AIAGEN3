@@ -56,83 +56,119 @@ external_comps=${externalComps}
       'utf-8'
     );
 
-    // 3. Create Screen1.scm with demo components
-    const components: any[] = [
-      {
-        "$Name": "Button1",
-        "$Type": "Button",
-        "$Version": "7",
-        "Uuid": generateUuid(),
-        "Text": "Button 1",
-        "Width": "-2"
-      },
-      {
-        "$Name": "Button2",
-        "$Type": "Button",
-        "$Version": "7",
-        "Uuid": generateUuid(),
-        "Text": "Button 2",
-        "Width": "-2"
-      },
+    // 3. Create Screen1.scm with user-specified components
+    const requirements = request.requirements || "";
+    const searchPrompt = request.searchPrompt || "default search";
+    
+    // Parse requirements to determine components needed
+    const reqLower = requirements.toLowerCase();
+    const components: any[] = [];
+    
+    // Always add basic components
+    components.push(
       {
         "$Name": "Label1",
         "$Type": "Label",
         "$Version": "6",
         "Uuid": generateUuid(),
-        "Text": "Hello from Label!",
-        "Width": "-2"
-      },
+        "Text": `Welcome to ${projectName}`,
+        "Width": "-2",
+        "FontSize": "18"
+      }
+    );
+
+    // Add 4 buttons if requested in prompt
+    if (reqLower.includes('4 buttons') || reqLower.includes('four buttons')) {
+      for (let i = 1; i <= 4; i++) {
+        components.push({
+          "$Name": `Button${i}`,
+          "$Type": "Button",
+          "$Version": "7",
+          "Uuid": generateUuid(),
+          "Text": `Button ${i}`,
+          "Width": "-2",
+          "Height": "-2"
+        });
+      }
+    } else {
+      // Default buttons
+      components.push(
+        {
+          "$Name": "SearchButton",
+          "$Type": "Button",
+          "$Version": "7",
+          "Uuid": generateUuid(),
+          "Text": "Search",
+          "Width": "-2"
+        },
+        {
+          "$Name": "ClearButton",
+          "$Type": "Button",
+          "$Version": "7",
+          "Uuid": generateUuid(),
+          "Text": "Clear",
+          "Width": "-2"
+        }
+      );
+    }
+
+    // Add search components
+    components.push(
       {
-        "$Name": "TextBox1",
+        "$Name": "SearchBox",
         "$Type": "TextBox",
         "$Version": "6",
         "Uuid": generateUuid(),
-        "Hint": "Enter text here",
+        "Hint": searchPrompt,
         "Width": "-2"
       },
       {
-        "$Name": "Image1",
-        "$Type": "Image",
+        "$Name": "ResultsLabel",
+        "$Type": "Label",
+        "$Version": "6",
+        "Uuid": generateUuid(),
+        "Text": "Search results will appear here",
+        "Width": "-2"
+      }
+    );
+
+    // Add list view if requested
+    if (reqLower.includes('list view') || reqLower.includes('list')) {
+      components.push({
+        "$Name": "ResultsList",
+        "$Type": "ListView",
         "$Version": "5",
         "Uuid": generateUuid(),
-        "Picture": "", // Placeholder for image asset
         "Width": "-2",
-        "Height": "-2"
-      },
+        "Height": "300"
+      });
+    }
+
+    // Add sound player if requested
+    if (reqLower.includes('sound') || reqLower.includes('play')) {
+      components.push({
+        "$Name": "SoundPlayer",
+        "$Type": "Player",
+        "$Version": "6",
+        "Uuid": generateUuid()
+      });
+    }
+
+    // Add web component for API calls
+    components.push(
       {
-        "$Name": "CheckBox1",
-        "$Type": "CheckBox",
-        "$Version": "5",
-        "Uuid": generateUuid(),
-        "Text": "Check me!",
-        "Width": "-2"
-      },
-      {
-        "$Name": "Slider1",
-        "$Type": "Slider",
-        "$Version": "5",
-        "Uuid": generateUuid(),
-        "Width": "-2"
+        "$Name": "WebComponent",
+        "$Type": "Web",
+        "$Version": "6",
+        "Uuid": generateUuid()
       },
       {
         "$Name": "Notifier1",
         "$Type": "Notifier",
         "$Version": "6",
         "Uuid": generateUuid()
-      },
-      {
-        "$Name": "Clock1",
-        "$Type": "Clock",
-        "$Version": "5",
-        "Uuid": generateUuid()
-      },
-      {
-        "$Name": "Web1",
-        "$Type": "Web",
-        "$Version": "6",
-        "Uuid": generateUuid()
       }
-    ];
+    );
 
     const screenScm = {
       "authURL": [],
@@ -156,53 +192,68 @@ external_comps=${externalComps}
     );
 
     // 4. Create Screen1.bky (blocks file) - MIT AI2 exact specification
-    const screenBky = `<xml xmlns="https://developers.google.com/blockly/xml">
-  <yacodeblocks ya-version="232" language-version="31">
-    <block type="component_event" id="1" x="50" y="50">
-      <mutation component_type="Button" is_generic="false" instance_name="Button1" event_name="Click"></mutation>
-      <field name="component_object">Button1</field>
+    let blockEvents = '';
+    let blockId = 1;
+    
+    // Generate blocks based on components
+    if (reqLower.includes('4 buttons') || reqLower.includes('four buttons')) {
+      // Create 4 button click events
+      for (let i = 1; i <= 4; i++) {
+        blockEvents += `
+    <block type="component_event" id="${blockId}" x="50" y="${50 + (i-1) * 150}">
+      <mutation component_type="Button" is_generic="false" instance_name="Button${i}" event_name="Click"></mutation>
+      <field name="component_object">Button${i}</field>
       <statement name="DO">
-        <block type="component_set_get" id="2">
+        <block type="component_set_get" id="${blockId + 1}">
           <mutation component_type="Label" set_or_get="set" property_name="Text" is_generic="false" instance_name="Label1"></mutation>
           <field name="PROP">Text</field>
           <value name="VALUE">
+            <block type="text" id="${blockId + 2}">
+              <field name="TEXT">Button ${i} clicked! ${searchPrompt}</field>
+            </block>
+          </value>
+        </block>
+      </statement>
+    </block>`;
+        blockId += 3;
+      }
+    } else {
+      // Default search and clear button events
+      blockEvents += `
+    <block type="component_event" id="1" x="50" y="50">
+      <mutation component_type="Button" is_generic="false" instance_name="SearchButton" event_name="Click"></mutation>
+      <field name="component_object">SearchButton</field>
+      <statement name="DO">
+        <block type="component_set_get" id="2">
+          <mutation component_type="Label" set_or_get="set" property_name="Text" is_generic="false" instance_name="ResultsLabel"></mutation>
+          <field name="PROP">Text</field>
+          <value name="VALUE">
             <block type="text" id="3">
-              <field name="TEXT">Button 1 clicked!</field>
+              <field name="TEXT">Searching for: ${searchPrompt}</field>
             </block>
           </value>
         </block>
       </statement>
     </block>
     <block type="component_event" id="4" x="50" y="200">
-      <mutation component_type="Button" is_generic="false" instance_name="Button2" event_name="Click"></mutation>
-      <field name="component_object">Button2</field>
+      <mutation component_type="Button" is_generic="false" instance_name="ClearButton" event_name="Click"></mutation>
+      <field name="component_object">ClearButton</field>
       <statement name="DO">
-        <block type="component_method_call" id="5">
-          <mutation component_type="Notifier" method_name="ShowAlert" is_generic="false" instance_name="Notifier1"></mutation>
-          <field name="component_object">Notifier1</field>
-          <value name="ARG0">
-            <block type="text" id="6">
-              <field name="TEXT">Button 2 clicked!</field>
-            </block>
-          </value>
-        </block>
-      </statement>
-    </block>
-    <block type="component_event" id="7" x="50" y="350">
-      <mutation component_type="TextBox" is_generic="false" instance_name="TextBox1" event_name="GotFocus"></mutation>
-      <field name="component_object">TextBox1</field>
-      <statement name="DO">
-        <block type="component_set_get" id="8">
-          <mutation component_type="TextBox" set_or_get="set" property_name="BackgroundColor" is_generic="false" instance_name="TextBox1"></mutation>
-          <field name="PROP">BackgroundColor</field>
+        <block type="component_set_get" id="5">
+          <mutation component_type="TextBox" set_or_get="set" property_name="Text" is_generic="false" instance_name="SearchBox"></mutation>
+          <field name="PROP">Text</field>
           <value name="VALUE">
-            <block type="color_yellow" id="9">
-              <field name="COLOR">&HFFFFFF00</field>
+            <block type="text" id="6">
+              <field name="TEXT"></field>
             </block>
           </value>
         </block>
       </statement>
-    </block>
+    </block>`;
+    }
+
+    const screenBky = `<xml xmlns="https://developers.google.com/blockly/xml">
+  <yacodeblocks ya-version="232" language-version="31">${blockEvents}
   </yacodeblocks>
 </xml>`;
     await fs.promises.writeFile(

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { generateAiaRequestSchema, type GenerateAiaRequest } from "@shared/schema";
@@ -38,6 +38,7 @@ function FeatureBadge({ name, icon, color }: FeatureBadgeProps) {
 export function AiaForm({ onStatusMessage, onClearStatus }: AiaFormProps) {
   const [showApiKey, setShowApiKey] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [designImages, setDesignImages] = useState<File[]>([]);
   const [detectedFeatures, setDetectedFeatures] = useState<string[]>([]);
   const { toast } = useToast();
 
@@ -216,6 +217,73 @@ export function AiaForm({ onStatusMessage, onClearStatus }: AiaFormProps) {
     validateMutation.mutate(formattedData);
   };
 
+  // Configuration management functions
+  const saveConfiguration = useCallback(() => {
+    try {
+      const currentValues = form.getValues();
+      const config = {
+        googleApiKey: currentValues.apiKey || "",
+        customSearchEngineId: currentValues.cseId || "",
+        userId: currentValues.userId || "",
+        searchPrompt: currentValues.searchPrompt || "",
+        requirements: currentValues.requirements || "",
+        projectName: currentValues.projectName || "",
+        saveConfig: currentValues.saveConfig || false,
+        validateStrict: currentValues.validateStrict || true,
+        savedAt: new Date().toISOString()
+      };
+      localStorage.setItem("aia-generator-config", JSON.stringify(config));
+      onStatusMessage("Configuration saved successfully!", "success");
+      toast({
+        title: "Configuration Saved",
+        description: "Your settings have been saved and will persist between sessions.",
+      });
+    } catch (error) {
+      console.error("Save configuration error:", error);
+      onStatusMessage("Failed to save configuration", "error");
+      toast({
+        title: "Save Failed",
+        description: "Could not save configuration to browser storage.",
+        variant: "destructive",
+      });
+    }
+  }, [form, onStatusMessage, toast]);
+
+  const loadConfiguration = useCallback(() => {
+    try {
+      const saved = localStorage.getItem("aia-generator-config");
+      if (saved) {
+        const config = JSON.parse(saved);
+
+        // Load all saved values
+        if (config.googleApiKey) form.setValue("apiKey", config.googleApiKey);
+        if (config.customSearchEngineId) form.setValue("cseId", config.customSearchEngineId);
+        if (config.userId) form.setValue("userId", config.userId);
+        if (config.searchPrompt) form.setValue("searchPrompt", config.searchPrompt);
+        if (config.requirements) form.setValue("requirements", config.requirements);
+        if (config.projectName) form.setValue("projectName", config.projectName);
+        if (config.saveConfig !== undefined) form.setValue("saveConfig", config.saveConfig);
+        if (config.validateStrict !== undefined) form.setValue("validateStrict", config.validateStrict);
+
+        onStatusMessage(`Configuration loaded from ${new Date(config.savedAt).toLocaleDateString()}`, "success");
+        return true;
+      }
+    } catch (error) {
+      console.error("Load configuration error:", error);
+      onStatusMessage("Failed to load saved configuration", "warning");
+    }
+    return false;
+  }, [form, onStatusMessage]);
+
+  // Auto-load configuration on component mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadConfiguration();
+    }, 100); // Small delay to ensure form is ready
+
+    return () => clearTimeout(timer);
+  }, [loadConfiguration]);
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -288,10 +356,10 @@ export function AiaForm({ onStatusMessage, onClearStatus }: AiaFormProps) {
                   <FormLabel>Google API Key <span className="text-red-500">*</span></FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <Input 
+                      <Input
                         type={showApiKey ? "text" : "password"}
                         placeholder="Enter your Google Custom Search API key"
-                        {...field} 
+                        {...field}
                       />
                       <Button
                         type="button"
@@ -366,10 +434,10 @@ export function AiaForm({ onStatusMessage, onClearStatus }: AiaFormProps) {
                 <FormItem>
                   <FormLabel>App Requirements & Features</FormLabel>
                   <FormControl>
-                    <Textarea 
+                    <Textarea
                       rows={4}
                       placeholder="Describe your app requirements. Examples:&#10;- Use list view to display search results&#10;- Play a sound when search completes&#10;- Add custom styling&#10;- Include specific functionality"
-                      {...field} 
+                      {...field}
                     />
                   </FormControl>
                   <FormDescription>
@@ -420,14 +488,34 @@ export function AiaForm({ onStatusMessage, onClearStatus }: AiaFormProps) {
               <span>Extensions (.aix files)</span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <FileUpload 
-              files={uploadedFiles}
-              onFilesChange={setUploadedFiles}
-              accept=".aix"
-              multiple
-            />
-          </CardContent>
+          <CardContent className="space-y-4">
+              <div>
+                <Label>Extension Files (.aix)</Label>
+                <FormDescription>Upload MIT App Inventor extension files</FormDescription>
+                <FileUpload
+                  files={uploadedFiles}
+                  onFilesChange={setUploadedFiles}
+                  accept=".aix"
+                  multiple
+                />
+              </div>
+
+              <div>
+                <Label>Design Images (Optional)</Label>
+                <FormDescription>Upload UI mockup or design images for reference (PNG, JPG, GIF)</FormDescription>
+                <FileUpload
+                  files={designImages}
+                  onFilesChange={setDesignImages}
+                  accept=".png,.jpg,.jpeg,.gif,.bmp"
+                  multiple
+                />
+                {designImages.length > 0 && (
+                  <div className="mt-2 text-sm text-green-600">
+                    ✓ {designImages.length} design image(s) uploaded - will be referenced in component generation
+                  </div>
+                )}
+              </div>
+            </CardContent>
         </Card>
 
         {/* Generation Settings */}
@@ -447,9 +535,9 @@ export function AiaForm({ onStatusMessage, onClearStatus }: AiaFormProps) {
               render={({ field }) => (
                 <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                   <FormControl>
-                    <Checkbox 
-                      checked={field.value} 
-                      onCheckedChange={field.onChange} 
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
                     />
                   </FormControl>
                   <div className="space-y-1 leading-none">
@@ -465,9 +553,9 @@ export function AiaForm({ onStatusMessage, onClearStatus }: AiaFormProps) {
               render={({ field }) => (
                 <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                   <FormControl>
-                    <Checkbox 
-                      checked={field.value} 
-                      onCheckedChange={field.onChange} 
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
                     />
                   </FormControl>
                   <div className="space-y-1 leading-none">
@@ -481,7 +569,7 @@ export function AiaForm({ onStatusMessage, onClearStatus }: AiaFormProps) {
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 pt-4">
-          <Button 
+          <Button
             type="button"
             variant="outline"
             onClick={handleValidate}
@@ -492,7 +580,7 @@ export function AiaForm({ onStatusMessage, onClearStatus }: AiaFormProps) {
             {validateMutation.isPending ? "Validating..." : "Validate Configuration"}
           </Button>
 
-          <Button 
+          <Button
             type="submit"
             disabled={generateMutation.isPending}
             className="flex-1"
