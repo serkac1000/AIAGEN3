@@ -22,6 +22,8 @@ export async function generateAiaFile(
   console.log(`[AIA_GEN] Starting generation for project: ${projectName}`);
   console.log(`[AIA_GEN] Extension files: ${extensionFiles.length}`);
   console.log(`[AIA_GEN] Design images: ${designImageFiles.length}`);
+  console.log(`[AIA_GEN] Requirements: "${request.requirements || 'none'}"`);
+  console.log(`[AIA_GEN] Search prompt: "${request.searchPrompt || 'none'}"`);
 
   try {
     // 1. Create the necessary directory structure

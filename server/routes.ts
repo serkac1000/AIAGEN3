@@ -56,12 +56,18 @@ aiaRouter.post("/generate-aia", upload.fields([
   { name: 'designImages', maxCount: 5 }
 ]), async (req: Request, res: Response) => {
   try {
+    // Debug: Log the actual request body and files
+    log(`[DEBUG] Raw request body: ${JSON.stringify(req.body)}`);
+    log(`[DEBUG] Files received: ${JSON.stringify(Object.keys(req.files || {}))}`);
+    
     // Manually parse boolean fields from the multipart form data
     const processedBody = {
       ...req.body,
       saveConfig: req.body.saveConfig === 'true',
       validateStrict: req.body.validateStrict === 'true',
     };
+    
+    log(`[DEBUG] Processed body: ${JSON.stringify(processedBody)}`);
 
     const validationResult = generateAiaRequestSchema.safeParse(processedBody);
     if (!validationResult.success) {
