@@ -90,9 +90,25 @@ external_comps=${externalComps}
       }
     );
 
-    // Add 4 buttons if requested in prompt
-    if (reqLower.includes('4 buttons') || reqLower.includes('four buttons')) {
-      for (let i = 1; i <= 4; i++) {
+    // Parse number of buttons from requirements
+    let buttonCount = 0;
+    const buttonMatches = reqLower.match(/(\d+)\s*buttons?/);
+    const wordMatches = reqLower.match(/(one|two|three|four|five|six|seven|eight|nine|ten)\s*buttons?/);
+    
+    if (buttonMatches) {
+      buttonCount = parseInt(buttonMatches[1], 10);
+    } else if (wordMatches) {
+      const wordToNumber = {
+        'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+        'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10
+      };
+      buttonCount = wordToNumber[wordMatches[1] as keyof typeof wordToNumber] || 0;
+    }
+
+    console.log(`[AIA_GEN] Detected button count: ${buttonCount}`);
+
+    if (buttonCount > 0 && buttonCount <= 10) {
+      for (let i = 1; i <= buttonCount; i++) {
         components.push({
           "$Name": `Button${i}`,
           "$Type": "Button",
@@ -155,6 +171,38 @@ external_comps=${externalComps}
         "Width": "-2",
         "Height": "300"
       });
+    }
+
+    // Add text boxes if requested
+    const textboxMatches = reqLower.match(/(\d+)\s*text\s*box(es)?/);
+    if (textboxMatches || reqLower.includes('text box') || reqLower.includes('input')) {
+      const textboxCount = textboxMatches ? parseInt(textboxMatches[1], 10) : 1;
+      for (let i = 1; i <= Math.min(textboxCount, 5); i++) {
+        components.push({
+          "$Name": `TextBox${i}`,
+          "$Type": "TextBox",
+          "$Version": "6",
+          "Uuid": generateUuid(),
+          "Hint": `Enter text ${i}`,
+          "Width": "-2"
+        });
+      }
+    }
+
+    // Add labels if requested
+    const labelMatches = reqLower.match(/(\d+)\s*label(s)?/);
+    if (labelMatches) {
+      const labelCount = parseInt(labelMatches[1], 10);
+      for (let i = 2; i <= Math.min(labelCount + 1, 6); i++) { // Start from 2 since Label1 already exists
+        components.push({
+          "$Name": `Label${i}`,
+          "$Type": "Label",
+          "$Version": "6",
+          "Uuid": generateUuid(),
+          "Text": `Label ${i}`,
+          "Width": "-2"
+        });
+      }
     }
 
     // Add sound player if requested
@@ -224,9 +272,9 @@ external_comps=${externalComps}
     let blockId = 1;
 
     // Generate blocks based on components
-    if (reqLower.includes('4 buttons') || reqLower.includes('four buttons')) {
-      // Create 4 button click events
-      for (let i = 1; i <= 4; i++) {
+    if (buttonCount > 0) {
+      // Create button click events for the detected number of buttons
+      for (let i = 1; i <= buttonCount; i++) {
         blockEvents += `
     <block type="component_event" id="${blockId}" x="50" y="${50 + (i-1) * 150}">
       <mutation component_type="Button" is_generic="false" instance_name="Button${i}" event_name="Click"></mutation>
@@ -237,7 +285,7 @@ external_comps=${externalComps}
           <field name="PROP">Text</field>
           <value name="VALUE">
             <block type="text" id="${blockId + 2}">
-              <field name="TEXT">Button ${i} clicked! ${searchPrompt}</field>
+              <field name="TEXT">Button ${i} clicked! ${searchPrompt || projectName}</field>
             </block>
           </value>
         </block>
