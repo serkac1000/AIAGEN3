@@ -31,8 +31,8 @@ export const insertAiaProjectSchema = createInsertSchema(aiaProjects).omit({
 }).extend({
   projectName: z.string().min(1, "Project name is required").regex(/^[a-zA-Z0-9_]+$/, "Project name must be alphanumeric with underscores only"),
   userId: z.string().min(1, "User ID is required"),
-  apiKey: z.string().min(1, "API key is required"),
-  cseId: z.string().min(1, "CSE ID is required"),
+  apiKey: z.string().optional(),
+  cseId: z.string().optional(),
   searchPrompt: z.string().min(1, "Search prompt is required"),
   requirements: z.string().optional(),
   extensions: z.array(z.string()).default([]),

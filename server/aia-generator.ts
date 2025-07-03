@@ -10,7 +10,8 @@ function generateUuid(): string {
 
 export async function generateAiaFile(
   request: GenerateAiaRequest,
-  extensionFiles: Express.Multer.File[] = []
+  extensionFiles: Express.Multer.File[] = [],
+  designImageFiles: Express.Multer.File[] = []
 ): Promise<Buffer> {
   const { projectName, userId } = request;
   const tempDir = path.join(process.cwd(), 'temp', `${projectName}_${Date.now()}`);
@@ -262,7 +263,17 @@ external_comps=${externalComps}
       'utf-8'
     );
 
-    // 5. Create the zip archive in memory
+    // 5. Save design images to assets folder if provided
+    if (designImageFiles && designImageFiles.length > 0) {
+      for (const imageFile of designImageFiles) {
+        const imagePath = path.join(assetsDir, imageFile.originalname);
+        await fs.promises.copyFile(imageFile.path, imagePath);
+        // Clean up temp file
+        await fs.promises.unlink(imageFile.path).catch(() => {});
+      }
+    }
+
+    // 6. Create the zip archive in memory
     const zipBuffer = await new Promise<Buffer>((resolve, reject) => {
       const archive = archiver('zip', { zlib: { level: 9 } });
       const buffers: Buffer[] = [];
@@ -276,7 +287,7 @@ external_comps=${externalComps}
     return zipBuffer;
 
   } finally {
-    // 6. Cleanup the temporary directory
+    // 7. Cleanup the temporary directory
     await fs.promises.rm(tempDir, { recursive: true, force: true }).catch(err => {
       console.warn(`Failed to cleanup temp directory: ${tempDir}`, err);
     });

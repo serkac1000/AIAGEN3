@@ -5,7 +5,24 @@ import { generateAiaRequestSchema } from "@shared/schema";
 import { log } from "./vite";
 import multer from 'multer';
 
-const upload = multer({ dest: 'uploads/' });
+const upload = multer({ 
+  dest: 'uploads/',
+  fileFilter: (req, file, cb) => {
+    if (file.fieldname === 'extensions' && !file.originalname.endsWith('.aix')) {
+      cb(new Error('Only .aix files are allowed for extensions'));
+      return;
+    }
+    if (file.fieldname === 'designImages') {
+      const allowedImageTypes = ['.png', '.jpg', '.jpeg', '.gif', '.bmp'];
+      const fileExt = file.originalname.toLowerCase().substring(file.originalname.lastIndexOf('.'));
+      if (!allowedImageTypes.includes(fileExt)) {
+        cb(new Error('Only image files (PNG, JPG, JPEG, GIF, BMP) are allowed for design images'));
+        return;
+      }
+    }
+    cb(null, true);
+  }
+});
 export const aiaRouter = Router();
 
 // Middleware for detailed logging
@@ -34,7 +51,10 @@ aiaRouter.post("/validate", (req: Request, res: Response) => {
   }
 });
 
-aiaRouter.post("/generate-aia", upload.array('extensions'), async (req: Request, res: Response) => {
+aiaRouter.post("/generate-aia", upload.fields([
+  { name: 'extensions', maxCount: 10 },
+  { name: 'designImages', maxCount: 5 }
+]), async (req: Request, res: Response) => {
   try {
     // Manually parse boolean fields from the multipart form data
     const processedBody = {

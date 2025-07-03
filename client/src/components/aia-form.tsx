@@ -109,6 +109,9 @@ export function AiaForm({ onStatusMessage, onClearStatus }: AiaFormProps) {
       uploadedFiles.forEach(file => {
         formData.append('extensions', file);
       });
+      designImages.forEach(file => {
+        formData.append('designImages', file);
+      });
 
       const response = await fetch("/api/generate-aia", {
         method: "POST",
@@ -353,12 +356,12 @@ export function AiaForm({ onStatusMessage, onClearStatus }: AiaFormProps) {
               name="apiKey"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Google API Key <span className="text-red-500">*</span></FormLabel>
+                  <FormLabel>Google API Key <span className="text-gray-400">(Optional)</span></FormLabel>
                   <FormControl>
                     <div className="relative">
                       <Input
                         type={showApiKey ? "text" : "password"}
-                        placeholder="Enter your Google Custom Search API key"
+                        placeholder="Enter your Google Custom Search API key (optional)"
                         {...field}
                       />
                       <Button
@@ -373,7 +376,7 @@ export function AiaForm({ onStatusMessage, onClearStatus }: AiaFormProps) {
                     </div>
                   </FormControl>
                   <FormDescription>
-                    Get your API key from the <a href="https://console.developers.google.com/" target="_blank" className="text-primary hover:underline">Google Cloud Console</a>
+                    Optional: Get your API key from the <a href="https://console.developers.google.com/" target="_blank" className="text-primary hover:underline">Google Cloud Console</a> for search functionality
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -385,12 +388,12 @@ export function AiaForm({ onStatusMessage, onClearStatus }: AiaFormProps) {
               name="cseId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Custom Search Engine ID <span className="text-red-500">*</span></FormLabel>
+                  <FormLabel>Custom Search Engine ID <span className="text-gray-400">(Optional)</span></FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter your Custom Search Engine ID" {...field} />
+                    <Input placeholder="Enter your Custom Search Engine ID (optional)" {...field} />
                   </FormControl>
                   <FormDescription>
-                    Create and get your CSE ID from <a href="https://cse.google.com/" target="_blank" className="text-primary hover:underline">Google Custom Search</a>
+                    Optional: Create and get your CSE ID from <a href="https://cse.google.com/" target="_blank" className="text-primary hover:underline">Google Custom Search</a>
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
