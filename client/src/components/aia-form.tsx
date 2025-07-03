@@ -182,6 +182,9 @@ export function AiaForm({ onStatusMessage, onClearStatus }: AiaFormProps) {
       if (req.includes('custom styling') || req.includes('theme')) {
         features.push('Custom Styling');
       }
+      if (req.includes('gui via image') || req.includes('image') || req.includes('picture')) {
+        features.push('Image Components');
+      }
 
       setDetectedFeatures(features);
     } else {

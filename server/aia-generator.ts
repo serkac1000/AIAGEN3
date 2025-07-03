@@ -3,6 +3,7 @@ import path from 'path';
 import archiver from 'archiver';
 import { v4 as uuidv4 } from 'uuid';
 import type { GenerateAiaRequest } from '@shared/schema';
+import os from 'os';
 
 function generateUuid(): string {
   return Math.floor(Math.random() * 1000000000).toString();
@@ -15,7 +16,8 @@ export async function generateAiaFile(
   const extensionFiles = files?.extensions || [];
   const designImageFiles = files?.designImages || [];
   const { projectName, userId } = request;
-  const tempDir = path.join(process.cwd(), 'temp', `${projectName}_${Date.now()}`);
+  // Use OS temp directory for better cross-platform compatibility
+  const tempDir = path.join(os.tmpdir(), 'aia-generator', `${projectName}_${Date.now()}`);
 
   console.log(`[AIA_GEN] Starting generation for project: ${projectName}`);
   console.log(`[AIA_GEN] Extension files: ${extensionFiles.length}`);
@@ -35,7 +37,7 @@ export async function generateAiaFile(
 
     // 2. Create project.properties
     const timestamp = new Date().toUTCString();
-    const externalComps = extensionFiles.map(ext => `com.appybuilder.${path.parse(ext.originalname).name}`).join(',');
+    const externalComps = extensionFiles.map((ext: any) => `com.appybuilder.${path.parse(ext.originalname).name}`).join(',');
 
     const projectProperties = `#
 #${timestamp}
@@ -62,7 +64,7 @@ external_comps=${externalComps}
     await fs.promises.writeFile(
       path.join(youngandroidDir, 'project.properties'),
       projectProperties,
-      'utf-8'
+      { encoding: 'utf-8' }
     );
 
     // 3. Create Screen1.scm with user-specified components
@@ -163,6 +165,21 @@ external_comps=${externalComps}
       });
     }
 
+    // Add image components if requested and images are provided
+    if ((reqLower.includes('gui via image') || reqLower.includes('image') || reqLower.includes('picture')) && designImageFiles && designImageFiles.length > 0) {
+      designImageFiles.forEach((imageFile: any, index: number) => {
+        components.push({
+          "$Name": `Image${index + 1}`,
+          "$Type": "Image",
+          "$Version": "4",
+          "Uuid": generateUuid(),
+          "Picture": imageFile.originalname,
+          "Width": "-2",
+          "Height": "200"
+        });
+      });
+    }
+
     // Add web component for API calls
     components.push(
       {
@@ -197,7 +214,7 @@ external_comps=${externalComps}
     await fs.promises.writeFile(
       path.join(srcDir, 'Screen1.scm'),
       `#|\n$JSON\n${JSON.stringify(screenScm, null, 2)}\n|#`,
-      'utf-8'
+      { encoding: 'utf-8' }
     );
 
     // 4. Create Screen1.bky (blocks file) - MIT AI2 exact specification
@@ -268,7 +285,7 @@ external_comps=${externalComps}
     await fs.promises.writeFile(
       path.join(srcDir, 'Screen1.bky'),
       screenBky,
-      'utf-8'
+      { encoding: 'utf-8' }
     );
 
     // 5. Save design images to assets folder if provided
