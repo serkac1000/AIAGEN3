@@ -41,6 +41,7 @@ export const insertAiaProjectSchema = createInsertSchema(aiaProjects).omit({
 export const generateAiaRequestSchema = insertAiaProjectSchema.extend({
   saveConfig: z.boolean().default(false),
   validateStrict: z.boolean().default(true),
+  blocklyCode: z.string().optional(),
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
