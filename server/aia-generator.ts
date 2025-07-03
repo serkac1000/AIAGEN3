@@ -271,15 +271,71 @@ external_comps=${externalComps}
     let blockEvents = '';
     let blockId = 1;
 
+    // Parse specific actions from requirements
+    const parseButtonActions = (requirements: string) => {
+      const actions: { [key: number]: string[] } = {};
+      const req = requirements.toLowerCase();
+      
+      // Look for button-specific actions
+      const buttonActionPatterns = [
+        /button\s*(\d+).*?set\s+(\w+)\s+background/g,
+        /push\s+(?:on\s+)?button\s*(\d+).*?set\s+(\w+)\s+background/g,
+        /click\s+button\s*(\d+).*?set\s+(\w+)\s+background/g
+      ];
+      
+      buttonActionPatterns.forEach(pattern => {
+        let match;
+        while ((match = pattern.exec(req)) !== null) {
+          const buttonNum = parseInt(match[1], 10);
+          const color = match[2];
+          if (!actions[buttonNum]) actions[buttonNum] = [];
+          actions[buttonNum].push(`set_background_${color}`);
+        }
+      });
+      
+      return actions;
+    };
+
+    const buttonActions = parseButtonActions(requirements);
+    console.log(`[AIA_GEN] Detected button actions: ${JSON.stringify(buttonActions)}`);
+
     // Generate blocks based on components
     if (buttonCount > 0) {
       // Create button click events for the detected number of buttons
       for (let i = 1; i <= buttonCount; i++) {
+        const hasSpecificAction = buttonActions[i] && buttonActions[i].length > 0;
+        
         blockEvents += `
     <block type="component_event" id="${blockId}" x="50" y="${50 + (i-1) * 150}">
       <mutation component_type="Button" is_generic="false" instance_name="Button${i}" event_name="Click"></mutation>
       <field name="component_object">Button${i}</field>
-      <statement name="DO">
+      <statement name="DO">`;
+
+        if (hasSpecificAction && buttonActions[i].includes('set_background_red')) {
+          // Set red background for screen
+          blockEvents += `
+        <block type="component_set_get" id="${blockId + 1}">
+          <mutation component_type="Form" set_or_get="set" property_name="BackgroundColor" is_generic="false" instance_name="Screen1"></mutation>
+          <field name="PROP">BackgroundColor</field>
+          <value name="VALUE">
+            <block type="color_red" id="${blockId + 2}"></block>
+          </value>
+        </block>`;
+        } else if (hasSpecificAction && buttonActions[i].some(action => action.startsWith('set_background_'))) {
+          // Set other background colors
+          const colorAction = buttonActions[i].find(action => action.startsWith('set_background_'));
+          const color = colorAction?.split('_')[2] || 'blue';
+          blockEvents += `
+        <block type="component_set_get" id="${blockId + 1}">
+          <mutation component_type="Form" set_or_get="set" property_name="BackgroundColor" is_generic="false" instance_name="Screen1"></mutation>
+          <field name="PROP">BackgroundColor</field>
+          <value name="VALUE">
+            <block type="color_${color}" id="${blockId + 2}"></block>
+          </value>
+        </block>`;
+        } else {
+          // Default action - update label
+          blockEvents += `
         <block type="component_set_get" id="${blockId + 1}">
           <mutation component_type="Label" set_or_get="set" property_name="Text" is_generic="false" instance_name="Label1"></mutation>
           <field name="PROP">Text</field>
@@ -288,7 +344,10 @@ external_comps=${externalComps}
               <field name="TEXT">Button ${i} clicked! ${searchPrompt || projectName}</field>
             </block>
           </value>
-        </block>
+        </block>`;
+        }
+
+        blockEvents += `
       </statement>
     </block>`;
         blockId += 3;
