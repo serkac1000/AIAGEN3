@@ -157,23 +157,40 @@ external_comps=${externalComps}
 
     // 4. Create Screen1.bky (blocks file)
     const screenBky = `<xml xmlns="https://developers.google.com/blockly/xml">
-  <block type="component_event" x="50" y="50">
-    <mutation component_type="Button" event_name="Click" component_id="Button1"></mutation>
-    <field name="component_id">Button1</field>
-    <field name="event_name">Click</field>
-    <statement name="DO">
-      <block type="component_set_get_property">
-        <mutation component_type="Form" property_name="BackgroundColor"></mutation>
-        <field name="component_id">Screen1</field>
-        <field name="property_name">BackgroundColor</field>
-        <value name="VALUE">
-          <block type="color_number">
-            <field name="NUM">4278255360</field> <!-- Green -->
-          </block>
-        </value>
-      </block>
-    </statement>
-  </block>
+  <yacodeblocks ya-version="232" language-version="31">
+    <block type="component_event" x="50" y="50">
+      <mutation component_type="Button" instance_name="Button1" event_name="Click"></mutation>
+      <field name="component_object">Button1</field>
+      <statement name="DO">
+        <block type="component_set_get">
+          <mutation component_type="Form" set_or_get="set" property_name="BackgroundColor" is_generic="false" instance_name="Screen1"></mutation>
+          <field name="component_object">Screen1</field>
+          <field name="property">BackgroundColor</field>
+          <value name="VALUE">
+            <block type="color_green">
+              <field name="NUM">&HFF00FF00</field>
+            </block>
+          </value>
+        </block>
+      </statement>
+    </block>
+    <block type="component_event" x="50" y="200">
+      <mutation component_type="Button" instance_name="Button2" event_name="Click"></mutation>
+      <field name="component_object">Button2</field>
+      <statement name="DO">
+        <block type="component_set_get">
+          <mutation component_type="Label" set_or_get="set" property_name="Text" is_generic="false" instance_name="Label1"></mutation>
+          <field name="component_object">Label1</field>
+          <field name="property">Text</field>
+          <value name="VALUE">
+            <block type="text">
+              <field name="TEXT">Button 2 clicked!</field>
+            </block>
+          </value>
+        </block>
+      </statement>
+    </block>
+  </yacodeblocks>
 </xml>`;
     await fs.promises.writeFile(
       path.join(srcDir, 'Screen1.bky'),
