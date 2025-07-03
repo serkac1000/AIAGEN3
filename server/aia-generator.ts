@@ -155,68 +155,49 @@ external_comps=${externalComps}
       'utf-8'
     );
 
-    // 4. Create Screen1.bky (blocks file) - MIT AI2 compatible format
-    const screenBky = `<xml xmlns="http://www.w3.org/1999/xhtml">
+    // 4. Create Screen1.bky (blocks file) - MIT AI2 exact specification
+    const screenBky = `<xml xmlns="https://developers.google.com/blockly/xml">
   <yacodeblocks ya-version="232" language-version="31">
     <block type="component_event" id="1" x="50" y="50">
       <mutation component_type="Button" is_generic="false" instance_name="Button1" event_name="Click"></mutation>
       <field name="component_object">Button1</field>
       <statement name="DO">
         <block type="component_set_get" id="2">
-          <mutation component_type="Form" set_or_get="set" property_name="BackgroundColor" is_generic="false" instance_name="Screen1"></mutation>
-          <field name="PROP">BackgroundColor</field>
+          <mutation component_type="Label" set_or_get="set" property_name="Text" is_generic="false" instance_name="Label1"></mutation>
+          <field name="PROP">Text</field>
           <value name="VALUE">
-            <block type="color_make_color" id="3">
-              <value name="COLORLIST">
-                <block type="lists_create_with" id="4">
-                  <mutation items="3"></mutation>
-                  <value name="ADD0">
-                    <block type="math_number" id="5">
-                      <field name="NUM">0</field>
-                    </block>
-                  </value>
-                  <value name="ADD1">
-                    <block type="math_number" id="6">
-                      <field name="NUM">255</field>
-                    </block>
-                  </value>
-                  <value name="ADD2">
-                    <block type="math_number" id="7">
-                      <field name="NUM">0</field>
-                    </block>
-                  </value>
-                </block>
-              </value>
+            <block type="text" id="3">
+              <field name="TEXT">Button 1 clicked!</field>
             </block>
           </value>
         </block>
       </statement>
     </block>
-    <block type="component_event" id="8" x="50" y="200">
+    <block type="component_event" id="4" x="50" y="200">
       <mutation component_type="Button" is_generic="false" instance_name="Button2" event_name="Click"></mutation>
       <field name="component_object">Button2</field>
       <statement name="DO">
-        <block type="component_set_get" id="9">
-          <mutation component_type="Label" set_or_get="set" property_name="Text" is_generic="false" instance_name="Label1"></mutation>
-          <field name="PROP">Text</field>
-          <value name="VALUE">
-            <block type="text" id="10">
+        <block type="component_method_call" id="5">
+          <mutation component_type="Notifier" method_name="ShowAlert" is_generic="false" instance_name="Notifier1"></mutation>
+          <field name="component_object">Notifier1</field>
+          <value name="ARG0">
+            <block type="text" id="6">
               <field name="TEXT">Button 2 clicked!</field>
             </block>
           </value>
         </block>
       </statement>
     </block>
-    <block type="component_event" id="11" x="50" y="350">
+    <block type="component_event" id="7" x="50" y="350">
       <mutation component_type="TextBox" is_generic="false" instance_name="TextBox1" event_name="GotFocus"></mutation>
       <field name="component_object">TextBox1</field>
       <statement name="DO">
-        <block type="component_set_get" id="12">
-          <mutation component_type="TextBox" set_or_get="set" property_name="Hint" is_generic="false" instance_name="TextBox1"></mutation>
-          <field name="PROP">Hint</field>
+        <block type="component_set_get" id="8">
+          <mutation component_type="TextBox" set_or_get="set" property_name="BackgroundColor" is_generic="false" instance_name="TextBox1"></mutation>
+          <field name="PROP">BackgroundColor</field>
           <value name="VALUE">
-            <block type="text" id="13">
-              <field name="TEXT"></field>
+            <block type="color_yellow" id="9">
+              <field name="COLOR">&HFFFFFF00</field>
             </block>
           </value>
         </block>
