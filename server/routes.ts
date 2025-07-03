@@ -69,7 +69,7 @@ aiaRouter.post("/generate-aia", upload.fields([
       return res.status(400).json({ message: "Invalid request body", errors: validationResult.error.issues });
     }
 
-    const aiaBuffer = await generateAiaFile(validationResult.data, req.files as Express.Multer.File[]);
+    const aiaBuffer = await generateAiaFile(validationResult.data, req.files);
     const appName = validationResult.data.projectName || "MyTwoButtonApp";
 
     res.setHeader("Content-Type", "application/zip");

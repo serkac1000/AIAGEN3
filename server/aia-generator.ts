@@ -10,20 +10,28 @@ function generateUuid(): string {
 
 export async function generateAiaFile(
   request: GenerateAiaRequest,
-  extensionFiles: Express.Multer.File[] = [],
-  designImageFiles: Express.Multer.File[] = []
+  files: any = {}
 ): Promise<Buffer> {
+  const extensionFiles = files?.extensions || [];
+  const designImageFiles = files?.designImages || [];
   const { projectName, userId } = request;
   const tempDir = path.join(process.cwd(), 'temp', `${projectName}_${Date.now()}`);
+
+  console.log(`[AIA_GEN] Starting generation for project: ${projectName}`);
+  console.log(`[AIA_GEN] Extension files: ${extensionFiles.length}`);
+  console.log(`[AIA_GEN] Design images: ${designImageFiles.length}`);
 
   try {
     // 1. Create the necessary directory structure
     const srcDir = path.join(tempDir, 'src', 'appinventor', `ai_${userId}`, projectName);
     const assetsDir = path.join(tempDir, 'assets');
     const youngandroidDir = path.join(tempDir, 'youngandroidproject');
+    
+    console.log(`[AIA_GEN] Creating directories in: ${tempDir}`);
     await fs.promises.mkdir(srcDir, { recursive: true });
     await fs.promises.mkdir(assetsDir, { recursive: true });
     await fs.promises.mkdir(youngandroidDir, { recursive: true });
+    console.log(`[AIA_GEN] Directories created successfully`);
 
     // 2. Create project.properties
     const timestamp = new Date().toUTCString();
@@ -274,22 +282,40 @@ external_comps=${externalComps}
     }
 
     // 6. Create the zip archive in memory
+    console.log(`[AIA_GEN] Creating ZIP archive from: ${tempDir}`);
     const zipBuffer = await new Promise<Buffer>((resolve, reject) => {
       const archive = archiver('zip', { zlib: { level: 9 } });
       const buffers: Buffer[] = [];
+      
       archive.on('data', (chunk) => buffers.push(chunk));
-      archive.on('end', () => resolve(Buffer.concat(buffers)));
-      archive.on('error', reject);
+      archive.on('end', () => {
+        console.log(`[AIA_GEN] ZIP archive created successfully`);
+        resolve(Buffer.concat(buffers));
+      });
+      archive.on('error', (err) => {
+        console.error(`[AIA_GEN] ZIP creation error:`, err);
+        reject(err);
+      });
+      archive.on('warning', (err) => {
+        console.warn(`[AIA_GEN] ZIP warning:`, err);
+      });
+      
       archive.directory(tempDir, false);
       archive.finalize();
     });
 
     return zipBuffer;
 
+  } catch (error) {
+    console.error(`[AIA_GEN] Generation failed:`, error);
+    throw new Error(`AIA generation failed: ${error instanceof Error ? error.message : String(error)}`);
   } finally {
     // 7. Cleanup the temporary directory
-    await fs.promises.rm(tempDir, { recursive: true, force: true }).catch(err => {
-      console.warn(`Failed to cleanup temp directory: ${tempDir}`, err);
-    });
+    try {
+      await fs.promises.rm(tempDir, { recursive: true, force: true });
+      console.log(`[AIA_GEN] Cleaned up temp directory: ${tempDir}`);
+    } catch (err) {
+      console.warn(`[AIA_GEN] Failed to cleanup temp directory: ${tempDir}`, err);
+    }
   }
 }
